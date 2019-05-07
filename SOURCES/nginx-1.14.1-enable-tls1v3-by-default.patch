@@ -1,0 +1,147 @@
+diff --git a/src/event/ngx_event_openssl.c b/src/event/ngx_event_openssl.c
+index 570abd7..ac37936 100644
+--- a/src/event/ngx_event_openssl.c
++++ b/src/event/ngx_event_openssl.c
+@@ -232,6 +232,8 @@ ngx_ssl_init(ngx_log_t *log)
+ ngx_int_t
+ ngx_ssl_create(ngx_ssl_t *ssl, ngx_uint_t protocols, void *data)
+ {
++    ngx_uint_t prot = NGX_SSL_NO_PROT;
++
+     ssl->ctx = SSL_CTX_new(SSLv23_method());
+ 
+     if (ssl->ctx == NULL) {
+@@ -296,39 +298,53 @@ ngx_ssl_create(ngx_ssl_t *ssl, ngx_uint_t protocols, void *data)
+ 
+     SSL_CTX_set_options(ssl->ctx, SSL_OP_SINGLE_DH_USE);
+ 
+-#ifdef SSL_CTRL_CLEAR_OPTIONS
+-    /* only in 0.9.8m+ */
+-    SSL_CTX_clear_options(ssl->ctx,
+-                          SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1);
++    if (protocols){
++#ifdef SSL_OP_NO_TLSv1_3
++        if (protocols & NGX_SSL_TLSv1_3) {
++            prot = TLS1_3_VERSION;
++        } else
++#endif
++#ifdef SSL_OP_NO_TLSv1_2
++        if (protocols & NGX_SSL_TLSv1_2) {
++            prot =  TLS1_2_VERSION;
++        } else
++#endif
++#ifdef SSL_OP_NO_TLSv1_1
++        if (protocols & NGX_SSL_TLSv1_1) {
++            prot = TLS1_1_VERSION;
++        } else
+ #endif
++        if (protocols & NGX_SSL_TLSv1) {
++            prot = TLS1_VERSION;
++        }
+ 
+-    if (!(protocols & NGX_SSL_SSLv2)) {
+-        SSL_CTX_set_options(ssl->ctx, SSL_OP_NO_SSLv2);
+-    }
+-    if (!(protocols & NGX_SSL_SSLv3)) {
+-        SSL_CTX_set_options(ssl->ctx, SSL_OP_NO_SSLv3);
+-    }
+-    if (!(protocols & NGX_SSL_TLSv1)) {
+-        SSL_CTX_set_options(ssl->ctx, SSL_OP_NO_TLSv1);
+-    }
++        if (prot == NGX_SSL_NO_PROT) {
++                    ngx_ssl_error(NGX_LOG_EMERG, ssl->log, 0,
++                      "No SSL protocols available [hint: ssl_protocols]");
++            return NGX_ERROR;
++        }
++
++        SSL_CTX_set_max_proto_version(ssl->ctx, prot);
++
++        /* Now, we have to scan for minimal protocol version,
++         *without allowing holes between min and max*/
++#if SSL_OP_NO_TLSv1_3
++        if ((prot == TLS1_3_VERSION) && (protocols & NGX_SSL_TLSv1_2)) {
++            prot = TLS1_2_VERSION;
++        }
++#endif
+ #ifdef SSL_OP_NO_TLSv1_1
+-    SSL_CTX_clear_options(ssl->ctx, SSL_OP_NO_TLSv1_1);
+-    if (!(protocols & NGX_SSL_TLSv1_1)) {
+-        SSL_CTX_set_options(ssl->ctx, SSL_OP_NO_TLSv1_1);
+-    }
++        if ((prot == TLS1_2_VERSION) && (protocols & NGX_SSL_TLSv1_1)) {
++            prot = TLS1_1_VERSION;
++        }
+ #endif
+ #ifdef SSL_OP_NO_TLSv1_2
+-    SSL_CTX_clear_options(ssl->ctx, SSL_OP_NO_TLSv1_2);
+-    if (!(protocols & NGX_SSL_TLSv1_2)) {
+-        SSL_CTX_set_options(ssl->ctx, SSL_OP_NO_TLSv1_2);
+-    }
++        if ((prot == TLS1_1_VERSION) && (protocols & NGX_SSL_TLSv1)) {
++            prot = TLS1_VERSION;
++        }
+ #endif
+-#ifdef SSL_OP_NO_TLSv1_3
+-    SSL_CTX_clear_options(ssl->ctx, SSL_OP_NO_TLSv1_3);
+-    if (!(protocols & NGX_SSL_TLSv1_3)) {
+-        SSL_CTX_set_options(ssl->ctx, SSL_OP_NO_TLSv1_3);
++        SSL_CTX_set_min_proto_version(ssl->ctx, prot);
+     }
+-#endif
+ 
+ #ifdef SSL_OP_NO_COMPRESSION
+     SSL_CTX_set_options(ssl->ctx, SSL_OP_NO_COMPRESSION);
+diff --git a/src/event/ngx_event_openssl.h b/src/event/ngx_event_openssl.h
+index 623d851..6f3d7ee 100644
+--- a/src/event/ngx_event_openssl.h
++++ b/src/event/ngx_event_openssl.h
+@@ -132,6 +132,7 @@ typedef struct {
+ #endif
+ 
+ 
++#define NGX_SSL_NO_PROT  0x0000
+ #define NGX_SSL_SSLv2    0x0002
+ #define NGX_SSL_SSLv3    0x0004
+ #define NGX_SSL_TLSv1    0x0008
+diff --git a/src/http/modules/ngx_http_ssl_module.c b/src/http/modules/ngx_http_ssl_module.c
+index 7d62176..f9ef07d 100644
+--- a/src/http/modules/ngx_http_ssl_module.c
++++ b/src/http/modules/ngx_http_ssl_module.c
+@@ -590,8 +588,7 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
+                          prev->prefer_server_ciphers, 0);
+ 
+     ngx_conf_merge_bitmask_value(conf->protocols, prev->protocols,
+-                         (NGX_CONF_BITMASK_SET|NGX_SSL_TLSv1
+-                          |NGX_SSL_TLSv1_1|NGX_SSL_TLSv1_2));
++                         0)
+ 
+     ngx_conf_merge_size_value(conf->buffer_size, prev->buffer_size,
+                          NGX_SSL_BUFSIZE);
+diff --git a/src/mail/ngx_mail_ssl_module.c b/src/mail/ngx_mail_ssl_module.c
+index aebd179..50c7023 100644
+--- a/src/mail/ngx_mail_ssl_module.c
++++ b/src/mail/ngx_mail_ssl_module.c
+@@ -285,8 +283,7 @@ ngx_mail_ssl_merge_conf(ngx_conf_t *cf, void *parent, void *child)
+                          prev->prefer_server_ciphers, 0);
+ 
+     ngx_conf_merge_bitmask_value(conf->protocols, prev->protocols,
+-                         (NGX_CONF_BITMASK_SET|NGX_SSL_TLSv1
+-                          |NGX_SSL_TLSv1_1|NGX_SSL_TLSv1_2));
++                         0);
+ 
+     ngx_conf_merge_uint_value(conf->verify, prev->verify, 0);
+     ngx_conf_merge_uint_value(conf->verify_depth, prev->verify_depth, 1);
+diff --git a/src/stream/ngx_stream_ssl_module.c b/src/stream/ngx_stream_ssl_module.c
+index 3e5a1f2..c8fce57 100644
+--- a/src/stream/ngx_stream_ssl_module.c
++++ b/src/stream/ngx_stream_ssl_module.c
+@@ -554,8 +552,7 @@ ngx_stream_ssl_merge_conf(ngx_conf_t *cf, void *parent, void *child)
+                          prev->prefer_server_ciphers, 0);
+ 
+     ngx_conf_merge_bitmask_value(conf->protocols, prev->protocols,
+-                         (NGX_CONF_BITMASK_SET|NGX_SSL_TLSv1
+-                          |NGX_SSL_TLSv1_1|NGX_SSL_TLSv1_2));
++                         0);
+ 
+     ngx_conf_merge_uint_value(conf->verify, prev->verify, 0);
+     ngx_conf_merge_uint_value(conf->verify_depth, prev->verify_depth, 1);
