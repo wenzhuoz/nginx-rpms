@@ -1,0 +1,29 @@
+diff --git a/src/event/ngx_event_openssl.c b/src/event/ngx_event_openssl.c
+index 7be4fb4..ab3865a 100644
+--- a/src/event/ngx_event_openssl.c
++++ b/src/event/ngx_event_openssl.c
+@@ -727,16 +727,24 @@ ngx_ssl_load_certificate_key(ngx_pool_t *pool, char **err,
+             return NULL;
+         }
+ 
++        if (!ENGINE_init(engine)) {
++            *err = "ENGINE_init() failed";
++            ENGINE_free(engine);
++            return NULL;
++        }
++
+         *last++ = ':';
+ 
+         pkey = ENGINE_load_private_key(engine, (char *) last, 0, 0);
+ 
+         if (pkey == NULL) {
+             *err = "ENGINE_load_private_key() failed";
++            ENGINE_finish(engine);
+             ENGINE_free(engine);
+             return NULL;
+         }
+ 
++        ENGINE_finish(engine);
+         ENGINE_free(engine);
+ 
+         return pkey;
