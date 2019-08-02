@@ -1,0 +1,13 @@
+diff --git a/src/http/modules/perl/Makefile.PL b/src/http/modules/perl/Makefile.PL
+index 7edadcb..2ebb7c4 100644
+--- a/src/http/modules/perl/Makefile.PL
++++ b/src/http/modules/perl/Makefile.PL
+@@ -14,7 +14,7 @@ WriteMakefile(
+     AUTHOR            => 'Igor Sysoev',
+ 
+     CCFLAGS           => "$ENV{NGX_PM_CFLAGS}",
+-    OPTIMIZE          => '-O',
++    OPTIMIZE          => '-O2',
+ 
+     LDDLFLAGS         => "$ENV{NGX_PM_LDFLAGS}",
+ 

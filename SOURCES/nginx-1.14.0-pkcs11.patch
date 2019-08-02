@@ -1,0 +1,42 @@
+# HG changeset patch
+# User Anderson Sasaki <ansasaki@redhat.com>
+# Date 1533742801 -7200
+#      Wed Aug 08 17:40:01 2018 +0200
+# Node ID ae457c9b2967da1b05aefcf1e81c099e9375c0d7
+# Parent  ba971deb4b447662e3c47fcc860b34d43469162a
+SSL: added ENGINE_init() call before loading key.
+
+It is necessary to call ENGINE_init() before using an OpenSSL engine
+to get the engine functional reference.  Without this, when
+ENGINE_load_private_key() is called, the engine is still uninitialized.
+
+diff -r ba971deb4b44 -r ae457c9b2967 src/event/ngx_event_openssl.c
+--- a/src/event/ngx_event_openssl.c	Tue Aug 07 02:16:07 2018 +0300
++++ b/src/event/ngx_event_openssl.c	Wed Aug 08 17:40:01 2018 +0200
+@@ -533,6 +533,13 @@
+             return NGX_ERROR;
+         }
+ 
++        if (!ENGINE_init(engine)) {
++            ngx_ssl_error(NGX_LOG_EMERG, ssl->log, 0,
++                          "ENGINE_init(\"%s\") failed", p);
++            ENGINE_free(engine);
++            return NGX_ERROR;
++        }
++
+         *last++ = ':';
+ 
+         pkey = ENGINE_load_private_key(engine, (char *) last, 0, 0);
+@@ -540,10 +547,12 @@
+         if (pkey == NULL) {
+             ngx_ssl_error(NGX_LOG_EMERG, ssl->log, 0,
+                           "ENGINE_load_private_key(\"%s\") failed", last);
++            ENGINE_finish(engine);
+             ENGINE_free(engine);
+             return NGX_ERROR;
+         }
+ 
++        ENGINE_finish(engine);
+         ENGINE_free(engine);
+ 
+         if (SSL_CTX_use_PrivateKey(ssl->ctx, pkey) == 0) {
