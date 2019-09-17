@@ -19,7 +19,7 @@
 Name:              nginx
 Epoch:             1
 Version:           1.14.1
-Release:           8%{?dist}
+Release:           9%{?dist}
 
 Summary:           A high performance web server and reverse proxy server
 Group:             System Environment/Daemons
@@ -63,6 +63,13 @@ Patch4:            nginx-1.14.1-perl-module-hardening.patch
 
 # https://bugzilla.redhat.com/show_bug.cgi?id=1643647
 Patch5:            nginx-1.14.1-enable-tls1v3-by-default.patch
+
+# https://bugzilla.redhat.com/show_bug.cgi?id=1741860
+# https://bugzilla.redhat.com/show_bug.cgi?id=1735741
+# https://bugzilla.redhat.com/show_bug.cgi?id=1741864
+Patch200: nginx-1.14.1-CVE-2019-9511.patch
+Patch201: nginx-1.14.1-CVE-2019-9513.patch
+Patch202: nginx-1.14.1-CVE-2019-9516.patch
 
 %if 0%{?with_gperftools}
 BuildRequires:     gperftools-devel
@@ -203,6 +210,10 @@ Requires:          nginx
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
+
+%patch200 -p1
+%patch201 -p1
+%patch202 -p1
 
 cp %{SOURCE200} %{SOURCE210} %{SOURCE10} %{SOURCE12} .
 
@@ -474,6 +485,14 @@ fi
 
 
 %changelog
+* Fri Aug 30 2019 Lubos Uhliarik <luhliari@redhat.com> - 1:1.14.1-9
+- Resolves: #1744811 - CVE-2019-9511 nginx:1.14/nginx: HTTP/2: large amount of
+  data request leads to denial of service
+- Resolves: #1744325 - CVE-2019-9513 nginx:1.14/nginx: HTTP/2: flood using
+  PRIORITY frames resulting in excessive resource consumption
+- Resolves: #1745094 - CVE-2019-9516 nginx:1.14/nginx: HTTP/2: 0-length
+  headers leads to denial of service
+
 * Wed Dec 12 2018 Lubos Uhliarik <luhliari@redhat.com> - 1:1.14.1-8
 - enable TLS 1.3 by default (#1643647)
 - TLSv1.0 and TLSv1.1 can be enabled now (#1644746)
