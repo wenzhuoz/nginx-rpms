@@ -546,7 +546,7 @@ fi
 * Sat Sep 28 2019 Wenzhuo Zhang <wenzhuo@gmail.com> - 2:1.14.1-11
 - Remove mod-stream-geoip2.conf. The "include modules/*.conf" directive in nginx.conf
   tries to load ngx_stream_geoip2_module before ngx_stream_module is loaded.
-- Fix a typo in mod-stream-geoip2.conf.
+- Fix a typo in mod-http-geoip2.conf.
 
 * Sat Sep 28 2019 Wenzhuo Zhang <wenzhuo@gmail.com> - 2:1.14.1-10
 - Add ngx_http_geoip2_module
