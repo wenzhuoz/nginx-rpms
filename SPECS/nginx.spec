@@ -20,7 +20,7 @@
 Name:              nginx
 Epoch:             2
 Version:           1.14.1
-Release:           10%{?dist}
+Release:           11%{?dist}
 
 Summary:           A high performance web server and reverse proxy server
 Group:             System Environment/Daemons
@@ -376,10 +376,8 @@ echo 'load_module "%{_libdir}/nginx/modules/ngx_http_geoip_module.so";' \
     > %{buildroot}%{_datadir}/nginx/modules/mod-http-geoip.conf
 %endif
 %if %{with geoip2}
-echo 'load_module "%{_libdir}/nginx/modules/ngx_http_geoip2_module.o";' \
+echo 'load_module "%{_libdir}/nginx/modules/ngx_http_geoip2_module.so";' \
     > %{buildroot}%{_datadir}/nginx/modules/mod-http-geoip2.conf
-echo 'load_module "%{_libdir}/nginx/modules/ngx_stream_geoip2_module.so";' \
-    > %{buildroot}%{_datadir}/nginx/modules/mod-stream-geoip2.conf
 %endif
 echo 'load_module "%{_libdir}/nginx/modules/ngx_http_image_filter_module.so";' \
     > %{buildroot}%{_datadir}/nginx/modules/mod-http-image-filter.conf
@@ -517,7 +515,6 @@ fi
 %{_libdir}/nginx/modules/ngx_http_geoip2_module.so
 
 %files mod-stream-geoip2
-%{_datadir}/nginx/modules/mod-stream-geoip2.conf
 %{_libdir}/nginx/modules/ngx_stream_geoip2_module.so
 %endif
 
@@ -546,6 +543,11 @@ fi
 
 
 %changelog
+* Sat Sep 28 2019 Wenzhuo Zhang <wenzhuo@gmail.com> - 2:1.14.1-11
+- Remove mod-stream-geoip2.conf. The "include modules/*.conf" directive in nginx.conf
+  tries to load ngx_stream_geoip2_module before ngx_stream_module is loaded.
+- Fix a typo in mod-stream-geoip2.conf.
+
 * Sat Sep 28 2019 Wenzhuo Zhang <wenzhuo@gmail.com> - 2:1.14.1-10
 - Add ngx_http_geoip2_module
 
