@@ -81,7 +81,7 @@ BuildRequires:     zlib-devel
 
 Requires:          nginx-filesystem = %{epoch}:%{version}-%{release}
 
-%if 0%{?rhel} || 0%{?fedora} < 24
+%if 0%{?rhel} > 0 && 0%{?rhel} < 8
 # Introduced at 1:1.10.0-1 to ease upgrade path. To be removed later.
 Requires:          nginx-all-modules = %{epoch}:%{version}-%{release}
 %endif
@@ -250,7 +250,7 @@ sed -i -e 's#PROFILE=SYSTEM#HIGH:!aNULL:!MD5#' nginx.conf
 %endif
 
 %if %{with geoip2}
-git clone https://github.com/leev/ngx_http_geoip2_module.git
+git clone -b 3.2 --depth 1 https://github.com/leev/ngx_http_geoip2_module.git
 %endif
 
 %build
@@ -543,6 +543,10 @@ fi
 
 
 %changelog
+* Sun Sep 29 2019 Wenzhuo Zhang <wenzhuo@gmail.com> - 2:1.14.1-11
+- git clone a specific version (3.2) of ngx_http_geoip2_module
+- main package does NOT require all-modules package (1:1.16.0-1 backport)
+
 * Sat Sep 28 2019 Wenzhuo Zhang <wenzhuo@gmail.com> - 2:1.14.1-11
 - Remove mod-stream-geoip2.conf. The "include modules/*.conf" directive in nginx.conf
   tries to load ngx_stream_geoip2_module before ngx_stream_module is loaded.
