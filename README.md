@@ -9,27 +9,28 @@
     $ sudo dnf group install "Development Tools" "RPM Development Tools"
     ```
 
-2. Set up rpmbuild directory
+2. libmaxminddb-devel, which is required to build the ngx_http_geoip2_module, is missing from CentOS 8.0. We need to grab the libmaxminddb src rpm and rebuild it.
     ```
     $ rpmdev-setuptree
-    ```
-
-3. libmaxminddb-devel, which is required to build the ngx_http_geoip2_module, is missing from CentOS 8.0. We need to grab the libmaxminddb src rpm and rebuild it.
-    ```
     $ dnf download --source libmaxminddb
     $ rpmbuild --rebuild libmaxminddb-1.2.0-6.el8.src.rpm
     $ sudo rpm -Uvh ~/rpmbuild/RPMS/x86_64/libmaxminddb-devel-1.2.0-6.el8.x86_64.rpm
     ```
 
-## Rebuilding nginx rpm with the ngx_http_geoip2_module
+3. CentOS get_sources.sh script
+    ```
+    $ git clone https://git.centos.org/centos-git-common.git
+    $ mkdir -p ~/bin && ln -sf `pwd`/centos-git-common/get_sources.sh ~/bin
+    ```
+
+## Rebuilding nginx rpms with the ngx_http_geoip2_module
 ```
-$ sudo yum-builddep nginx
-$ dnf download --source nginx
-$ rpm -ivh nginx-1.14.1-8.module_el8.0.0+5+258f653c.src.rpm
-$ git clone -b c8-stream-1.14 https://github.com/wenzhuoz/nginx-rpmbuild.git
-$ cd nginx-rpmbuild
-$ cp SPECS/nginx.spec ~/rpmbuild/SPECS/
-$ cp SOURCES/* ~/rpmbuild/SOURCES/
-$ cd ~/rpmbuild/SPECS/
-$ rpmbuild -ba nginx.spec --with geoip2
+$ sudo dnf builddep nginx
+$ git clone -b c8-stream-1.14 https://github.com/wenzhuoz/nginx-rpms.git
+$ cd nginx-rpms
+$ get_sources.sh
+$ rpmbuild --define "%_topdir `pwd`" -ba SPECS/nginx.spec --with geoip2
 ```
+
+## See also
+* https://wiki.centos.org/Sources
