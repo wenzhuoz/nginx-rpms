@@ -29,6 +29,7 @@ $ sudo dnf builddep nginx
 $ git clone -b c8-stream-1.14 https://github.com/wenzhuoz/nginx-rpms.git
 $ cd nginx-rpms
 $ get_sources.sh
+$ git checkout c8-stream-1.14-geoip2
 $ rpmbuild --define "%_topdir `pwd`" -ba SPECS/nginx.spec --with geoip2
 ```
 
