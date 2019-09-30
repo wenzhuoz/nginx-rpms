@@ -18,9 +18,9 @@
 %endif
 
 Name:              nginx
-Epoch:             2
+Epoch:             1
 Version:           1.14.1
-Release:           11%{?dist}
+Release:           9%{?dist}
 
 Summary:           A high performance web server and reverse proxy server
 Group:             System Environment/Daemons
@@ -543,16 +543,16 @@ fi
 
 
 %changelog
-* Sun Sep 29 2019 Wenzhuo Zhang <wenzhuo@gmail.com> - 2:1.14.1-11
+* Sun Sep 29 2019 Wenzhuo Zhang <wenzhuo@gmail.com> - 1:1.14.1-9
 - git clone a specific version (3.2) of ngx_http_geoip2_module
 - main package does NOT require all-modules package (1:1.16.0-1 backport)
 
-* Sat Sep 28 2019 Wenzhuo Zhang <wenzhuo@gmail.com> - 2:1.14.1-11
+* Sat Sep 28 2019 Wenzhuo Zhang <wenzhuo@gmail.com> - 1:1.14.1-9
 - Remove mod-stream-geoip2.conf. The "include modules/*.conf" directive in nginx.conf
   tries to load ngx_stream_geoip2_module before ngx_stream_module is loaded.
 - Fix a typo in mod-http-geoip2.conf.
 
-* Sat Sep 28 2019 Wenzhuo Zhang <wenzhuo@gmail.com> - 2:1.14.1-10
+* Sat Sep 28 2019 Wenzhuo Zhang <wenzhuo@gmail.com> - 1:1.14.1-9
 - Add ngx_http_geoip2_module
 
 * Fri Aug 30 2019 Lubos Uhliarik <luhliari@redhat.com> - 1:1.14.1-9
