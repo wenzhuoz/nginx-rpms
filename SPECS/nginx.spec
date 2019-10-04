@@ -8,6 +8,7 @@
 %global with_gperftools 0
 
 %bcond_with geoip
+%bcond_with geoip2
 
 
 %global with_aio 1
@@ -99,6 +100,10 @@ BuildArch:         noarch
 %if %{with geoip}
 Requires:          nginx-mod-http-geoip = %{epoch}:%{version}-%{release}
 %endif
+%if %{with geoip2}
+Requires:          nginx-mod-http-geoip2 = %{epoch}:%{version}-%{release}
+Requires:          nginx-mod-stream-geoip2 = %{epoch}:%{version}-%{release}
+%endif
 Requires:          nginx-mod-http-image-filter = %{epoch}:%{version}-%{release}
 Requires:          nginx-mod-http-perl = %{epoch}:%{version}-%{release}
 Requires:          nginx-mod-http-xslt-filter = %{epoch}:%{version}-%{release}
@@ -128,6 +133,28 @@ Requires:          nginx
 Requires:          GeoIP
 
 %description mod-http-geoip
+%{summary}.
+%endif
+
+%if %{with geoip2}
+%package mod-http-geoip2
+Group:             System Environment/Daemons
+Summary:           Nginx HTTP geoip2 module
+BuildRequires:     libmaxminddb-devel
+Requires:          nginx
+Requires:          libmaxminddb
+
+%description mod-http-geoip2
+%{summary}.
+
+%package mod-stream-geoip2
+Group:             System Environment/Daemons
+Summary:           Nginx stream geoip2 module
+BuildRequires:     libmaxminddb-devel
+Requires:          nginx
+Requires:          libmaxminddb nginx-mod-stream
+
+%description mod-stream-geoip2
 %{summary}.
 %endif
 
@@ -197,6 +224,9 @@ sed -i -e 's#KillMode=.*#KillMode=process#g' nginx.service
 sed -i -e 's#PROFILE=SYSTEM#HIGH:!aNULL:!MD5#' nginx.conf
 %endif
 
+%if %{with geoip2}
+git clone -b 3.3 --depth 1 https://github.com/leev/ngx_http_geoip2_module.git
+%endif
 
 %build
 # nginx does not utilize a standard configure script.  It has its own
@@ -233,6 +263,9 @@ export DESTDIR=%{buildroot}
     --with-http_image_filter_module=dynamic \
 %if %{with geoip}
     --with-http_geoip_module=dynamic \
+%endif
+%if %{with geoip2}
+    --add-dynamic-module=ngx_http_geoip2_module \
 %endif
     --with-http_sub_module \
     --with-http_dav_module \
@@ -318,6 +351,10 @@ done
 echo 'load_module "%{_libdir}/nginx/modules/ngx_http_geoip_module.so";' \
     > %{buildroot}%{_datadir}/nginx/modules/mod-http-geoip.conf
 %endif
+%if %{with geoip2}
+echo 'load_module "%{_libdir}/nginx/modules/ngx_http_geoip2_module.so";' \
+    > %{buildroot}%{_datadir}/nginx/modules/mod-http-geoip2.conf
+%endif
 echo 'load_module "%{_libdir}/nginx/modules/ngx_http_image_filter_module.so";' \
     > %{buildroot}%{_datadir}/nginx/modules/mod-http-image-filter.conf
 echo 'load_module "%{_libdir}/nginx/modules/ngx_http_perl_module.so";' \
@@ -341,6 +378,18 @@ exit 0
 
 %if %{with geoip}
 %post mod-http-geoip
+if [ $1 -eq 1 ]; then
+    /usr/bin/systemctl reload nginx.service >/dev/null 2>&1 || :
+fi
+%endif
+
+%if %{with geoip2}
+%post mod-http-geoip2
+if [ $1 -eq 1 ]; then
+    /usr/bin/systemctl reload nginx.service >/dev/null 2>&1 || :
+fi
+
+%post mod-stream-geoip2
 if [ $1 -eq 1 ]; then
     /usr/bin/systemctl reload nginx.service >/dev/null 2>&1 || :
 fi
@@ -436,6 +485,15 @@ fi
 %{_libdir}/nginx/modules/ngx_http_geoip_module.so
 %endif
 
+%if %{with geoip2}
+%files mod-http-geoip2
+%{_datadir}/nginx/modules/mod-http-geoip2.conf
+%{_libdir}/nginx/modules/ngx_http_geoip2_module.so
+
+%files mod-stream-geoip2
+%{_libdir}/nginx/modules/ngx_stream_geoip2_module.so
+%endif
+
 %files mod-http-image-filter
 %{_datadir}/nginx/modules/mod-http-image-filter.conf
 %{_libdir}/nginx/modules/ngx_http_image_filter_module.so
@@ -461,6 +519,9 @@ fi
 
 
 %changelog
+* Sat Sep 28 2019 Wenzhuo Zhang <wenzhuo@gmail.com>
+- Add ngx_http_geoip2_module v3.3
+
 * Thu Aug 29 2019 Lubos Uhliarik <luhliari@redhat.com> - 1:1.16.1-1
 - update to 1.16.1
 - Resolves: #1745697 - CVE-2019-9511 nginx:1.16/nginx: HTTP/2: large amount
