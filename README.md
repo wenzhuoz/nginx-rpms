@@ -26,9 +26,9 @@
 ## Rebuilding nginx rpms with the ngx_http_geoip2_module
 ```
 $ sudo dnf builddep nginx
-$ git clone -b c8-beta-stream-1.16-geoip2 https://github.com/wenzhuoz/nginx-rpms.git
+$ git clone -b c8-stream-1.16-geoip2 https://github.com/wenzhuoz/nginx-rpms.git
 $ cd nginx-rpms
-$ get_sources.sh -c -b c8-beta-stream-1.16
+$ get_sources.sh -c -b c8-stream-1.16
 $ rpmbuild --define "%_topdir `pwd`" -ba SPECS/nginx.spec --with geoip2
 ```
 
